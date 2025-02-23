@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Nepal Digital Clock</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1e1e2f, #2a2a4e);
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .clock-container {
+            position: relative;
+            padding: 2.5rem 4rem;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            text-align: center;
+            z-index: 2;
+            transition: transform 0.3s ease;
+        }
+
+        .clock-container:hover {
+            transform: scale(1.02);
+        }
+
+        .time {
+            font-size: 5.5rem;
+            font-weight: 700;
+            letter-spacing: 5px;
+            background: linear-gradient(45deg, #00ffdd, #00aaff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 20px rgba(0, 255, 221, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+        }
+
+        .seconds {
+            font-size: 2.5rem;
+            margin-left: 8px;
+            opacity: 0.85;
+        }
+
+        .date {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #ff6b6b, #ff9999);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin: 0.8rem 0;
+        }
+
+        .day {
+            font-size: 1.7rem;
+            color: rgba(255, 255, 255, 0.95);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 1rem;
+        }
+
+        .control-btn {
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 20px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .control-btn.active {
+            background: rgba(0, 255, 221, 0.3);
+        }
+
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes particlePulse {
+            0% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.2); opacity: 0.6; }
+            100% { transform: scale(1); opacity: 0.3; }
+        }
+
+        @keyframes glow {
+            0% { text-shadow: 0 0 10px rgba(0, 255, 221, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 255, 221, 0.8); }
+            100% { text-shadow: 0 0 10px rgba(0, 255, 221, 0.5); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="clock-container">
+        <div class="time" id="time">
+            <span id="hours"></span>:<span id="minutes"></span>
+            <span class="seconds" id="seconds"></span>
+        </div>
+        <div class="date" id="date"></div>
+        <div class="day" id="day"></div>
+        <div class="controls">
+            <button class="control-btn" id="toggleFormat">24H</button>
+            <button class="control-btn" id="toggleGlow">Glow: ON</button>
+        </div>
+    </div>
+    <canvas class="particles" id="particles"></canvas>
+
+    <script>
+        const NEPAL_TIME_OFFSET = 5.75 * 60 * 60 * 1000; // Nepal UTC+5:45
+        let is24Hour = false;
+        let glowEffect = true;
+
+        // Clock update function
+        function updateClock() {
+            const now = new Date(new Date().getTime() + NEPAL_TIME_OFFSET);
+            let hours = now.getUTCHours();
+            const minutes = now.getUTCMinutes().toString().padStart(2, '0');
+            const seconds = now.getUTCSeconds().toString().padStart(2, '0');
+
+            // Format time
+            const period = hours >= 12 ? 'PM' : 'AM';
+            let displayHours = is24Hour ? hours : (hours % 12 || 12);
+            displayHours = displayHours.toString().padStart(2, '0');
+
+            // Date and day
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+            const dayName = days[now.getUTCDay()];
+            const month = months[now.getUTCMonth()];
+            const date = now.getUTCDate();
+            const year = now.getUTCFullYear();
+            const bsYear = year + 56 + (now.getUTCMonth() > 3 ? 1 : 0);
+
+            // Update display
+            const timeElement = document.getElementById('time');
+            let timeHTML = `${displayHours}:${minutes}<span class="seconds">${seconds}</span>`;
+            if (!is24Hour) timeHTML += ` ${period}`;
+            timeElement.innerHTML = timeHTML;
+
+            document.getElementById('date').textContent = `${month} ${date}, ${year} (BS ${bsYear})`;
+            document.getElementById('day').textContent = dayName;
+
+            // Apply glow effect
+            timeElement.style.animation = glowEffect ? 'glow 2s infinite' : 'none';
+        }
+
+        // Control buttons
+        const toggleFormat = document.getElementById('toggleFormat');
+        const toggleGlow = document.getElementById('toggleGlow');
+
+        toggleFormat.addEventListener('click', () => {
+            is24Hour = !is24Hour;
+            toggleFormat.textContent = is24Hour ? '12H' : '24H';
+            toggleFormat.classList.toggle('active');
+            updateClock();
+        });
+
+        toggleGlow.addEventListener('click', () => {
+            glowEffect = !glowEffect;
+            toggleGlow.textContent = glowEffect ? 'Glow: ON' : 'Glow: OFF';
+            toggleGlow.classList.toggle('active');
+            updateClock();
+        });
+
+        // Particle animation
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor() {
+                this.reset();
+                this.speedY = Math.random() * 0.5 + 0.2;
+                this.speedX = Math.random() * 0.4 - 0.2;
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + Math.random() * 100;
+                this.size = Math.random() * 4 + 2;
+                this.opacity = Math.random() * 0.3 + 0.2;
+            }
+
+            update() {
+                this.y -= this.speedY;
+                this.x += this.speedX;
+                if (this.y < -this.size || this.x < -this.size || this.x > canvas.width + this.size) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = `rgba(0, 255, 221, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const particles = Array(100).fill().map(() => new Particle());
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // Real-time clock update
+        function preciseUpdate() {
+            updateClock();
+            requestAnimationFrame(preciseUpdate);
+        }
+        requestAnimationFrame(preciseUpdate);
+
+        // Initial update
+        updateClock();
+    </script>
+</body>
+</html>
